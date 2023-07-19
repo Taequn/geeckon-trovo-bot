@@ -6,7 +6,7 @@ import webbrowser
 load_dotenv()
 
 
-CLIENT_ID = os.environ['CLIENT_ID']
+CLIENT_ID = os.environ["CLIENT_ID"]
 scopes_list = [
     "send_to_my_channel",
     "chat_send_self",
@@ -14,8 +14,7 @@ scopes_list = [
     "channel_subscriptions",
 ]
 scopes = "+".join(scopes_list)
-redirect_uri = 'http://127.0.0.1'
-
+redirect_uri = "http://127.0.0.1"
 
 
 # Construct the authorization URL
