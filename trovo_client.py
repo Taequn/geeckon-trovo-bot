@@ -1,28 +1,25 @@
-import websocket
-import _thread
-import time
-import rel
+import requests
+import os
+from dotenv import load_dotenv
+import webbrowser
 
-def on_message(ws, message):
-    print(message)
+load_dotenv()
 
-def on_error(ws, error):
-    print(error)
 
-def on_close(ws, close_status_code, close_msg):
-    print("### closed ###")
+CLIENT_ID = os.environ['CLIENT_ID']
+scopes_list = [
+    "send_to_my_channel",
+    "chat_send_self",
+    "manage_messages",
+    "channel_subscriptions",
+]
+scopes = "+".join(scopes_list)
+redirect_uri = 'http://127.0.0.1'
 
-def on_open(ws):
-    print("Opened connection")
 
-if __name__ == "__main__":
-    websocket.enableTrace(True)
-    ws = websocket.WebSocketApp("wss://api.gemini.com/v1/marketdata/BTCUSD",
-                              on_open=on_open,
-                              on_message=on_message,
-                              on_error=on_error,
-                              on_close=on_close)
 
-    ws.run_forever(dispatcher=rel, reconnect=5)  # Set dispatcher to automatic reconnection, 5 second reconnect delay if connection closed unexpectedly
-    rel.signal(2, rel.abort)  # Keyboard Interrupt
-    rel.dispatch()
+# Construct the authorization URL
+auth_url = f"https://open.trovo.live/page/login.html?client_id={CLIENT_ID}&response_type=token&scope={scopes}&redirect_uri={redirect_uri}"
+
+# Open the URL in a web browser
+webbrowser.open(auth_url)
