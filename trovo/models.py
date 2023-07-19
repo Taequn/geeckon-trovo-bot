@@ -57,7 +57,6 @@ class Channel(BaseChannel):
     video_resolution: str
     channel_country: str
     num_followers: int
-    
 
 
 class TopChannelsResponse(BaseModel):
@@ -88,12 +87,52 @@ class ChannelInfoResponse(BaseChannel):
     started_at: str
     ended_at: str
 
+
 class ChannelInfoRequest(BaseModel):
     channel_id: Optional[str]
     username: Optional[str]
+
 
 class ChannelStreamKeyResponse(BaseChannel):
     uid: str
     channel_id: str
     stream_key: str
     created_at: str
+
+
+class ChannelEditInfoRequest(BaseModel):
+    channel_id: str
+    live_title: Optional[str] = None
+    category: Optional[str] = None
+    language_code: Optional[str] = None
+    audi_type: Optional[str] = None
+
+
+class UserInfoResponse(BaseModel):
+    userId: str
+    userName: str
+    nickName: str
+    email: str
+    profilePic: str
+    info: str
+    channelId: str
+
+
+class UserSub(BaseModel):
+    user_id: str
+    username: str
+    display_name: str
+    profile_pic: str
+    created_at: str
+
+
+class SubList(BaseModel):
+    user: UserSub
+    sub_created_at: int
+    sub_lv: str
+    sub_tier: str
+
+
+class GetSubsResponse(BaseModel):
+    total: int
+    subscriptions: List[SubList]

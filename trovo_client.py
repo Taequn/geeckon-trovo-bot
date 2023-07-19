@@ -1,4 +1,3 @@
-import requests
 import os
 from dotenv import load_dotenv
 import webbrowser
@@ -12,6 +11,7 @@ scopes_list = [
     "chat_send_self",
     "manage_messages",
     "channel_subscriptions",
+    "chat_connect"
 ]
 scopes = "+".join(scopes_list)
 redirect_uri = "http://127.0.0.1"
