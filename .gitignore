@@ -2,3 +2,5 @@
 *.pyc
 .venv/**
 test.py
+trovo_client_auth.py
+trovo_chat.py
