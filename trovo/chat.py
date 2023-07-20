@@ -23,7 +23,7 @@ class TrovoChat:
         print("Error: " + str(error))
 
     def on_close(self, ws):
-        print("### closed ###")
+        print("### Connection closed ###")
 
     def on_open(self, ws):
         def run():

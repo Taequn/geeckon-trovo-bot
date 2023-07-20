@@ -14,8 +14,11 @@ GET_USER_INFO_URL = f"{API_URL}/getuserinfo"
 
 CHANNEL_URL = f"{API_URL}/channels"
 GET_CHANNEL_INFO_URL = f"{API_URL}/channels/id"
-READ_CHANNEL_INFO_URL = f"{API_URL}/channel"
 EDIT_CHANNEL_INTO_URL = f"{API_URL}/channels/update"
+GET_CHANNEL_SUBS = f"{API_URL}/channels/subscriptions"
+
+READ_CHANNEL_INFO_URL = f"{API_URL}/channel"
+
 
 GET_EMOTES_URL = f"{API_URL}/getemotes"
 GET_LIVESTREAMS_URL = f"{API_URL}/livestreamurl"

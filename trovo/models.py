@@ -1,5 +1,6 @@
 from pydantic import BaseModel, validator, Field
-from typing import List, Optional
+from typing import List, Optional, Dict
+import warnings
 
 
 class GameCategory(BaseModel):
@@ -17,11 +18,11 @@ class GameCategoriesResponse(BaseModel):
 
 class CategorySearchRequest(BaseModel):
     query: str
-    limit: int = Field(20, ge=1, le=100)
+    limit: int = Field(default=20, ge=1, le=100)
 
 
 class TopChannelsRequest(BaseModel):
-    limit: int = Field(20, ge=1, le=100)
+    limit: int = Field(default=20, ge=1, le=100)
     after: Optional[bool]
     token: Optional[str]
     cursor: Optional[int]
@@ -101,11 +102,28 @@ class ChannelStreamKeyResponse(BaseChannel):
 
 
 class ChannelEditInfoRequest(BaseModel):
-    channel_id: str
+    channel_id: int
     live_title: Optional[str] = None
     category: Optional[str] = None
     language_code: Optional[str] = None
     audi_type: Optional[str] = None
+
+    @validator("audi_type")
+    def check_audi_type(cls, v):
+        if v is not None and v not in [
+            "CHANNEL_AUDIENCE_TYPE_FAMILYFRIENDLY",
+            "CHANNEL_AUDIENCE_TYPE_TEEN",
+            "CHANNEL_AUDIENCE_TYPE_EIGHTEENPLUS",
+        ]:
+            raise ValueError("Incorrect audi_type: ", v)
+        return v
+
+    @validator("language_code")
+    def check_language_code(cls, v):
+        if v is not None and len(v) != 2:
+            raise ValueError("Incorrect country language code: ", v)
+        warnings.warn("The language_code does not work properly!")
+        return v
 
 
 class UserInfoResponse(BaseModel):
@@ -115,7 +133,7 @@ class UserInfoResponse(BaseModel):
     email: str
     profilePic: str
     info: str
-    channelId: str
+    channelId: int
 
 
 class UserSub(BaseModel):
@@ -136,3 +154,187 @@ class SubList(BaseModel):
 class GetSubsResponse(BaseModel):
     total: int
     subscriptions: List[SubList]
+
+
+class GetSubsRequest(BaseModel):
+    limit: int = Field(default=25, ge=0, le=100)
+    offset: int = Field(default=0, ge=0)
+    direction: str = "asc"
+
+    @validator("direction")
+    def check_direction_variable(cls, v):
+        if v not in ["asc", "desc"]:
+            raise ValueError(
+                "Incorrect value for direction: it can only be 'asc' or 'desc', provided value: ",
+                v,
+            )
+        return v
+
+
+class GetEmotesRequest(BaseModel):
+    emote_type: int
+    channel_id: List[int]
+
+    @validator("emote_type")
+    def check_emote_type(cls, v):
+        if v not in [0, 1, 2]:
+            raise ValueError(
+                "Incorrect value for emote_type: it can only be 0/1/2, provided value: ",
+                v,
+            )
+        return v
+
+
+class GetChannelViewersRequest(BaseModel):
+    limit: Optional[int] = Field(default=20, ge=20, le=200)
+    cursor: Optional[int] = Field(default=0, ge=0)
+
+
+class Viewers(BaseModel):
+    viewers: List[str]
+
+
+class Chatters(BaseModel):
+    VIPS: Viewers
+    ace: Viewers
+    aceplus: Viewers
+    admins: Viewers
+    all: Viewers
+    creators: Viewers
+    editors: Viewers
+    followers: Viewers
+    moderators: Viewers
+    subscribers: Viewers
+    supermods: Viewers
+    wardens: Viewers
+
+
+class GetChannelViewersResponse(BaseModel):
+    live_title: str
+    total: str
+    nickname: str
+    chatters: Chatters
+    custome_roles: Dict[str, Viewers]
+
+    class Config:
+        extra = "allow"
+
+
+class GetChannelFollowersRequest(GetChannelViewersRequest):
+    direction: str = "asc"
+
+    @validator("direction")
+    def check_direction(cls, v):
+        if v not in ["asc", "desc"]:
+            raise ValueError(
+                "Incorrect value for direction: it can only be 'asc' or 'desc', provided value: ",
+                v,
+            )
+        return v
+
+
+class ChannelFollower(BaseModel):
+    user_id: str
+    nickname: str
+    profile_pic: str
+    followed_at: str
+
+
+class GetChannelFollowersResponse(BaseModel):
+    total: str
+    follower: List[ChannelFollower]
+    total_page: int
+    cursor: int
+
+
+class StreamUrls(BaseModel):
+    play_url: Optional[str]
+    desc: Optional[str]
+
+
+class GetLiveStreamsUrlsResponse(BaseModel):
+    stream_urls: List[StreamUrls]
+
+
+class GetClipsRequest(BaseModel):
+    channel_id: int
+    category_id: Optional[str] = None
+    period: Optional[str] = "week"
+    clip_id: Optional[str] = None
+    limit: Optional[int] = Field(default=20, ge=0, le=100)
+    cursor: Optional[int] = Field(default=0, ge=0)
+    direction: Optional[str] = "asc"
+
+    @validator("direction")
+    def check_direction(cls, v):
+        if v not in ["asc", "desc"]:
+            raise ValueError(
+                "Incorrect value for direction: it can only be 'asc' or 'desc', provided value: ",
+                v,
+            )
+        return v
+
+    @validator("period")
+    def check_period(cls, v):
+        if v not in ["day", "week", "month", "all"]:
+            raise ValueError(
+                "Incorrect value for period: it can only be day/week/month/all, provided value: ",
+                v,
+            )
+
+
+class ClipInfo(BaseModel):
+    streamer_id: str
+    streamer_username: str
+    streamer_nickname: str
+    clip_id: str
+    title: str
+    url: str
+    language: str
+    thumbnail: str
+    category_id: str
+    sub_only: bool
+    made_at: str
+    duration: int
+    views: int
+    likes: int
+    comments_number: int
+    maker_username: str
+    maker_nickname: str
+
+
+class GetClipsResponse(BaseModel):
+    total_clips: int
+    clips_info: List[ClipInfo]
+    total_page: int
+    cursor: int
+
+
+class GetPastStreamsInfo(GetClipsRequest):
+    past_stream_id: Optional[str] = None
+
+
+class PastStreamInfo(BaseModel):
+    streamer_id: str
+    streamer_username: str
+    streamer_nickname: str
+    past_stream_id: str
+    title: str
+    url: str
+    language: str
+    thumbnail: str
+    category_id: str
+    sub_only: bool
+    duration: int
+    start_at: str
+    end_at: str
+    views: int
+    likes: int
+    comments_number: int
+
+
+class GetPastStreamsResponse(BaseModel):
+    total_past_streams: int
+    past_streams_info: List[PastStreamInfo]
+    total_page: int
+    cursor: int

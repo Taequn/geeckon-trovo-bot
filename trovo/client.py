@@ -1,6 +1,7 @@
 import requests
 from .endpoints import *
 from .models import *
+import warnings
 
 
 class TrovoClient:
@@ -14,12 +15,17 @@ class TrovoClient:
     def __check_access_token(self):
         if self.access_token is None:
             raise ValueError("Access token is required for this operation")
-    
-    def __auth_get_request(self, url):
+
+    def __auth_get_request(self, url: str):
         self.__check_access_token()
         r = requests.get(url, headers=self.headers_with_auth)
         return r.json()
-    
+
+    def __auth_get_request_with_params(self, url: str, params: dict):
+        self.__check_access_token()
+        r = requests.get(url, headers=self.headers_with_auth, params=params)
+        return r.json()
+
     def set_client_id(self, client_id):
         self.client_id = client_id
 
@@ -29,29 +35,24 @@ class TrovoClient:
     def process_post_method(self, url, data):
         request = requests.post(url, headers=self.headers, json=data)
         request.raise_for_status()
-
         response = request.json()
+
         return response
 
     def get_game_categories(self) -> GameCategoriesResponse:
         request = requests.get(GAME_CATEGORIES_URL, headers=self.headers)
         request.raise_for_status()
-
         response = request.json()
-        top_categories = GameCategoriesResponse(**response)
 
-        return top_categories
+        return GameCategoriesResponse(**response)
 
     def search_game_categories(
         self, query: str, limit: int = 20
     ) -> GameCategoriesResponse:
-        search_data_validation = CategorySearchRequest(query=query, limit=limit)
-        search_data = search_data_validation.model_dump()
-
-        response = self.process_post_method(SEARCH_CATEGORIES_URL, search_data)
-
-        categories = GameCategoriesResponse(**response)
-        return categories
+        data_validation = CategorySearchRequest(query=query, limit=limit)
+        data = data_validation.model_dump()
+        response = self.process_post_method(SEARCH_CATEGORIES_URL, data)
+        return GameCategoriesResponse(**response)
 
     def get_top_channels(
         self,
@@ -62,27 +63,21 @@ class TrovoClient:
         cursor: Optional[int] = None,
         category_id: Optional[str] = None,
     ) -> TopChannelsResponse:
-        channels_data_validation = TopChannelsRequest(
+        data_validation = TopChannelsRequest(
             limit=limit,
             after=after,
             token=token,
             cursor=cursor,
             category_id=category_id,
         )
-        channel_request = channels_data_validation.model_dump(exclude_none=True)
-
-        response = self.process_post_method(TOP_CHANNELS_URL, channel_request)
-
-        top_channels = TopChannelsResponse(**response)
-        return top_channels
+        data = data_validation.model_dump(exclude_none=True)
+        response = self.process_post_method(TOP_CHANNELS_URL, data)
+        return TopChannelsResponse(**response)
 
     def get_users_by_username(self, users: List[str]):
-        user_data = {"users": users}
-
-        response = self.process_post_method(GET_USERS_URL, data=user_data)
-
-        user_search = UserSearchResponse(**response)
-        return user_search
+        data = {"users": users}
+        response = self.process_post_method(GET_USERS_URL, data=data)
+        return UserSearchResponse(**response)
 
     def get_channel_info_by_id(
         self, channel_id: Optional[str] = None, username: Optional[str] = None
@@ -91,21 +86,17 @@ class TrovoClient:
             channel_id=channel_id, username=username
         )
         data = request_data_validation.model_dump(exclude_none=True)
-
         response = self.process_post_method(GET_CHANNEL_INFO_URL, data=data)
-
-        channel_info = ChannelInfoResponse(**response)
-        return channel_info
+        return ChannelInfoResponse(**response)
 
     # FINISH TESTING
-    def get_channel_info_by_streamkey(self):        
+    def get_channel_info_by_streamkey(self):
         response = self.__auth_get_request(READ_CHANNEL_INFO_URL)
-        channel_info = ChannelStreamKeyResponse(**response)
-        return response
+        return ChannelStreamKeyResponse(**response)
 
     def edit_channel_info(
         self,
-        channel_id: str,
+        channel_id: int,
         live_title: Optional[str] = None,
         category: Optional[str] = None,
         language_code: Optional[str] = None,
@@ -118,98 +109,104 @@ class TrovoClient:
             language_code=language_code,
             audi_type=audi_type,
         )
-
         data = data_validation.model_dump(exclude_none=True)
-
-        response = self.process_post_method(EDIT_CHANNEL_INTO_URL, data=data)
-
-        return response.json()
+        response = requests.post(
+            EDIT_CHANNEL_INTO_URL, headers=self.headers_with_auth, json=data
+        )
 
     def get_user_info(self):
         response = self.__auth_get_request(GET_USER_INFO_URL)
-        user_info = UserInfoResponse(**response)
-        return user_info
+        return UserInfoResponse(**response)
 
     def get_subscribers(
-        self, channel_id: str, limit: int = 25, offset: int = 0, direction: str = "asc"
+        self, channel_id: int, limit: int = 25, offset: int = 0, direction: str = "asc"
     ):
-        url = (
-            CHANNEL_URL
-            + f"/{channel_id}/subscriptions?limit={limit}&offset={offset}&direction={direction}"
+        data_validation = GetSubsRequest(
+            limit=limit, offset=offset, direction=direction
         )
-        response = self.__auth_get_request(url)
-        sub_list = GetSubsResponse(**response)
-        return sub_list
+        url = CHANNEL_URL + f"/{channel_id}/subscriptions"
+        data = data_validation.model_dump()
+        response = self.__auth_get_request_with_params(url, data)
+        return GetSubsResponse(**response)
 
     def get_emotes(self, emote_type: int, channel_id: List[int]):
-        data = {"emote_type": emote_type, "channel_id": channel_id}
+        data_validation = GetEmotesRequest(emote_type=emote_type, channel_id=channel_id)
+        data = data_validation.model_dump(exclude_none=True)
         response = self.process_post_method(GET_EMOTES_URL, data=data)
         return response
 
     def get_channel_viewers(self, channel_id: int, limit: int = 20, cursor: int = 0):
-        data = {"limit": limit, "cursor": cursor}
+        data_validation = GetChannelViewersRequest(limit=limit, cursor=cursor)
+        data = data_validation.model_dump()
         url = CHANNEL_URL + f"/{channel_id}/viewers"
         response = self.process_post_method(url, data=data)
-        return response
+        return GetChannelViewersResponse(**response)
 
     def get_channel_followers(
         self, channel_id: int, limit: int = 20, cursor: int = 0, direction: str = "asc"
     ):
-        data = {"limit": limit, "cursor": cursor, "direction": direction}
+        data_validation = GetChannelFollowersRequest(
+            limit=limit, cursor=cursor, direction=direction
+        )
+
+        data = data_validation.model_dump()
         url = CHANNEL_URL + f"/{channel_id}/followers"
         response = self.process_post_method(url, data=data)
-        return response
+        return GetChannelFollowersResponse(**response)
 
     def get_live_stream_urls(self, channel_id: int):
         data = {"channel_id": channel_id}
-        response = self.process_post_method(GET_LIVESTREAMS_URL, data=data)
-        return response
+        headers = self.headers
+        headers["Referer"] = "http://openplatform.trovo.live"
+        r = requests.post(GET_LIVESTREAMS_URL, headers=headers, json=data)
+        return GetLiveStreamsUrlsResponse(**r.json())
 
     def get_clips_info(
         self,
-        *,
         channel_id: int,
-        category_id: str,
-        period: str = "week",
-        clip_id: str,
-        limit: int = 20,
-        cursor: int = 0,
-        direction: str = "asc",
+        category_id: Optional[str] = None,
+        period: Optional[str] = "week",
+        clip_id: Optional[str] = None,
+        limit: Optional[int] = 20,
+        cursor: Optional[int] = 0,
+        direction: Optional[str] = "asc",
     ):
-        data = {
-            "channel_id": channel_id,
-            "category_id": category_id,
-            "period": period,
-            "clip_id": clip_id,
-            "limit": limit,
-            "cursor": cursor,
-            "direction": direction,
-        }
+        data_validation = GetClipsRequest(
+            channel_id=channel_id,
+            category_id=category_id,
+            period=period,
+            clip_id=clip_id,
+            limit=limit,
+            cursor=cursor,
+            direction=direction,
+        )
+        data = data_validation.model_dump(exclude_none=True)
         response = self.process_post_method(GET_CLIPS_INFO_URL, data=data)
-        return response
+        return GetClipsResponse(**response)
 
     def get_past_streams_info(
         self,
-        *,
         channel_id: int,
-        category_id: str,
-        period: str = "week",
-        past_stream_id: str,
-        limit: int = 20,
-        cursor: int = 0,
-        direction: str = "asc",
+        category_id: Optional[str] = None,
+        period: Optional[str] = "week",
+        past_stream_id: Optional[str] = None,
+        limit: Optional[int] = 20,
+        cursor: Optional[int] = 0,
+        direction: Optional[str] = "asc",
     ):
-        data = {
-            "channel_id": channel_id,
-            "category_id": category_id,
-            "period": period,
-            "past_stream_id": past_stream_id,
-            "limit": limit,
-            "cursor": cursor,
-            "direction": direction,
-        }
+        data_validation = GetPastStreamsInfo(
+            channel_id=channel_id,
+            category_id=category_id,
+            period=period,
+            past_stream_id=past_stream_id,
+            limit=limit,
+            cursor=cursor,
+            direction=direction,
+        )
+
+        data = data_validation.model_dump(exclude_none=True)
         response = self.process_post_method(GET_PAST_STREAMS_URL, data=data)
-        return response
+        return GetPastStreamsResponse(**response)
 
     def send_chat_to_my_channel(self, content: str):
         data = {"content": content}
