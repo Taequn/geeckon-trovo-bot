@@ -1,11 +1,10 @@
 import requests
 from .endpoints import *
 from .models import *
-import warnings
 
 
 class TrovoClient:
-    def __init__(self, client_id, access_token=None):
+    def __init__(self, client_id: str, access_token: Optional[str] = None):
         self.client_id = client_id
         self.access_token = access_token
         self.headers = {"Accept": "application/json", "Client-ID": self.client_id}
