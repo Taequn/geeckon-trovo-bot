@@ -8,12 +8,14 @@ from trovo.client.trovo_client import TrovoClient
 from trovo.chat.command_handler import CommandHandler
 from trovo.chat.helper_functions import extract_message_type_contents
 
+
 class TrovoChat:
-    def __init__(self, client_id: str, access_token: str, channel_id: int):
+    def __init__(self, client_id: str, access_token: str, channel_id: int, community_id: str):
         self.token = None
         self.channel_id = channel_id
         self.trovo = TrovoClient(client_id=client_id, access_token=access_token)
         self.handler = CommandHandler(self.trovo, self.channel_id)
+        self.community_id = community_id
 
     def generate_chat_token(self):
         response = self.trovo.get_chat_channel_token(self.channel_id)
